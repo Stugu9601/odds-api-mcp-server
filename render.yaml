@@ -10,7 +10,7 @@ services:
     autoDeploy: false
     envVars:
       - key: NODE_VERSION
-        value: 22
+        value: "22"
       - key: ODDS_API_KEY
         sync: false
       - key: OWNER_PASSWORD
