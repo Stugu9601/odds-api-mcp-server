@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { pathToFileURL } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -57,13 +58,12 @@ async function apiRequest(
   const response = await fetch(
     url.toString(),
     jsonBody === undefined
-      ? { method }
-      : { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(jsonBody) },
+      ? { method, signal: AbortSignal.timeout(30000) }
+      : { method, signal: AbortSignal.timeout(30000), headers: { "Content-Type": "application/json" }, body: JSON.stringify(jsonBody) },
   );
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`API error ${response.status}: ${body}`);
+    throw new Error(`Odds API returned HTTP ${response.status}`);
   }
 
   return response.json();
@@ -770,22 +770,26 @@ const tools: ToolDefinition[] = [
 
 const toolMap = new Map(tools.map((tool) => [tool.name, tool]));
 
+export function createServer(readOnly = false) {
+const availableTools = readOnly ? tools.filter(tool => !["select_bookmakers", "clear_selected_bookmakers"].includes(tool.name)) : tools;
+const availableToolMap = new Map(availableTools.map(tool => [tool.name, tool]));
 const server = new Server(
   { name: "odds-api-mcp", version: "1.5.3" },
   { capabilities: { tools: {}, resources: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: tools.map(({ name, description, inputSchema }) => ({
+  tools: availableTools.map(({ name, description, inputSchema }) => ({
     name,
     description,
     inputSchema,
+    annotations: { readOnlyHint: !["select_bookmakers", "clear_selected_bookmakers"].includes(name), destructiveHint: false, openWorldHint: true },
   })),
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  const tool = toolMap.get(name);
+  const tool = availableToolMap.get(name);
 
   if (!tool) {
     return errorResponse(`Unknown tool: ${name}`);
@@ -795,7 +799,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return await tool.handler(args ?? {});
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return errorResponse(message);
+    return errorResponse(message.replaceAll(API_KEY || "__no_key__", "[redacted]"));
   }
 });
 
@@ -847,6 +851,9 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 });
 
+return server;
+}
+
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -856,14 +863,16 @@ async function main() {
   }
 
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await createServer().connect(transport);
   console.error("Odds-API.io MCP Server running on stdio");
 }
 
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(() => {
+    console.error("Fatal error starting MCP server");
+    process.exit(1);
+  });
+}
 
 // ── Exports (for testing) ────────────────────────────────────────────────────
 
