@@ -40,7 +40,7 @@ After linking, enable the app in the conversation and ask: “List available spo
 
 - Local stdio remains available with `npm start`. HTTP starts separately with `npm run start:http`.
 - Remote tools cannot select or clear bookmakers on your provider account. Configure those settings directly with Odds-API.io if needed. The remote tools retrieve data and can grade hypothetical selections; they do not place bets.
-- Access tokens last one hour; refresh authorisation lasts at most seven days. Sign in again when it expires. Stable client and signing secrets let tokens survive service restarts. Login requests and short-lived codes in progress are lost on restart; restart that connection flow.
+- Access tokens last one hour; refresh authorisation lasts at most seven days. Sign in again when it expires. Stable client and signing secrets let tokens survive service restarts. Login forms expire after 15 minutes. Login requests and short-lived codes in progress are lost on restart; restart that connection flow.
 - To revoke all sessions, rotate `OAUTH_SIGNING_SECRET` and redeploy. Changing only `OWNER_PASSWORD` does not revoke issued tokens. Refresh tokens are signed and reusable until expiry; this personal server has no per-token revocation store. Keep the client secret private.
 - Free Render services can sleep when idle. Cold starts may interrupt initial linking; open `/health` first and retry. An always-on plan may be needed for dependable daily use. Rate limits are per instance, with additional limits imposed by your Odds API subscription.
 - `npm run build` and `npm test` check compilation, provider tools and the local OAuth/MCP flow. A live Render-to-ChatGPT test and real API-key verification remain required after deployment.

@@ -8,6 +8,7 @@ import { InvalidGrantError, InvalidScopeError, InvalidTargetError, InvalidTokenE
 type Pending = { clientId: string; params: AuthorizationParams; expires: number };
 const random = () => randomBytes(32).toString("base64url");
 const scope = "odds:read";
+export class IncorrectOwnerPasswordError extends Error {}
 
 /** Single-owner OAuth provider. Client and signing secrets survive Render restarts via env vars. */
 export class OwnerOAuthProvider implements OAuthServerProvider {
@@ -49,7 +50,7 @@ export class OwnerOAuthProvider implements OAuthServerProvider {
     this.prune();
     if (this.pending.size >= 100) throw new Error("Too many pending logins");
     const nonce = random();
-    this.pending.set(nonce, { clientId: client.client_id, params, expires: Date.now() + 300000 });
+    this.pending.set(nonce, { clientId: client.client_id, params, expires: Date.now() + 900000 });
     // The form contains only a random, one-use nonce; API and client secrets stay server-side.
     res.type("html").send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect your odds server</title><body><main><h1>Connect your odds server</h1><p>Allow ChatGPT to read sports odds using your Odds-API.io account.</p><form method="post" action="/login"><input type="hidden" name="nonce" value="${nonce}"><label>Owner password <input type="password" name="password" autocomplete="current-password" required maxlength="256"></label><p><button type="submit">Connect ChatGPT</button></p></form></main></body></html>`);
   }
@@ -60,7 +61,7 @@ export class OwnerOAuthProvider implements OAuthServerProvider {
     this.pending.delete(nonce);
     if (!entry || this.codes.size >= 100 || password.length > 256) return undefined;
     const hash = scryptSync(password, this.passwordSalt, 32);
-    if (!timingSafeEqual(hash, this.passwordHash)) return undefined;
+    if (!timingSafeEqual(hash, this.passwordHash)) throw new IncorrectOwnerPasswordError();
     const code = random();
     this.codes.set(code, { ...entry, expires: Date.now() + 60000 });
     const redirect = new URL(entry.params.redirectUri);

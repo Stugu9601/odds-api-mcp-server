@@ -45,6 +45,7 @@ async function obtainTokens() {
   const { nonce } = await startLogin();
   const response = await login(nonce);
   const redirect = new URL(response.headers.get("location")!);
+  expect(response.headers.get("content-security-policy")).toContain("form-action 'self' https://chatgpt.com");
   expect(redirect.searchParams.get("state")).toBe("test-state");
   expect(redirect.searchParams.get("iss")).toBe("https://odds.example/");
   const code = redirect.searchParams.get("code")!;
@@ -69,8 +70,12 @@ describe("Remote MCP and OAuth", () => {
   it("rejects an incorrect password and nonce replay", async () => {
     const { nonce, html } = await startLogin();
     expect(html).not.toContain(secret);
-    expect((await login(nonce, "wrong-password")).status).toBe(401);
-    expect((await login(nonce)).status).toBe(401);
+    const wrong = await login(nonce, "wrong-password");
+    expect(wrong.status).toBe(401);
+    expect(await wrong.text()).toContain("Incorrect owner password");
+    const replay = await login(nonce);
+    expect(replay.status).toBe(401);
+    expect(await replay.text()).toContain("already used");
   });
   it("rejects open redirects, foreign resources and excessive scopes", async () => {
     expect((await startLogin({ redirect_uri: "https://evil.example/callback" })).response.status).toBe(400);

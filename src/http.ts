@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createOAuthMetadata, mcpAuthRouter, getOAuthProtectedResourceMetadataUrl } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { createServer } from "./index.js";
-import { OwnerOAuthProvider } from "./auth.js";
+import { OwnerOAuthProvider, IncorrectOwnerPasswordError } from "./auth.js";
 
 export function createHttpApp(env: NodeJS.ProcessEnv = process.env) {
   if (!env.ODDS_API_KEY) throw new Error("ODDS_API_KEY is required");
@@ -26,7 +26,7 @@ export function createHttpApp(env: NodeJS.ProcessEnv = process.env) {
   app.set("trust proxy", 1);
   app.use((_req, res, next) => {
     res.set({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
-      "Content-Security-Policy": "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'" });
+      "Content-Security-Policy": "default-src 'none'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'" });
     next();
   });
   app.get("/health", (_req, res) => { res.json({ status: "ok" }); });
@@ -50,9 +50,14 @@ export function createHttpApp(env: NodeJS.ProcessEnv = process.env) {
     express.urlencoded({ extended: false, limit: "4kb" }), (req, res) => {
       const nonce = typeof req.body?.nonce === "string" ? req.body.nonce : "";
       const password = typeof req.body?.password === "string" ? req.body.password : "";
-      const redirect = provider.login(nonce, password);
-      if (!redirect) { res.status(401).type("text").send("Login failed or expired. Start the connection again from ChatGPT."); return; }
-      res.redirect(303, redirect.href);
+      try {
+        const redirect = provider.login(nonce, password);
+        if (!redirect) { res.status(401).type("text").send("Login request expired, was already used, or the server restarted. Start a fresh connection from ChatGPT."); return; }
+        res.redirect(303, redirect.href);
+      } catch (error) {
+        if (!(error instanceof IncorrectOwnerPasswordError)) throw error;
+        res.status(401).type("text").send("Incorrect owner password. Copy OWNER_PASSWORD from Render, then start a fresh connection from ChatGPT. Do not use CHATGPT_CLIENT_SECRET or your Odds API key here.");
+      }
     });
   const auth = requireBearerAuth({ verifier: provider, requiredScopes: ["odds:read"],
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource), expectedResource: resource });
