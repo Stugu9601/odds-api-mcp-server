@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: personal-odds-mcp
+    runtime: node
+    plan: free
+    branch: render-remote-mcp
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:http
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ODDS_API_KEY
+        sync: false
+      - key: OWNER_PASSWORD
+        generateValue: true
+      - key: OAUTH_SIGNING_SECRET
+        generateValue: true
+      - key: CHATGPT_CLIENT_SECRET
+        generateValue: true

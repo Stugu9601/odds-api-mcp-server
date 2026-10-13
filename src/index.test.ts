@@ -253,7 +253,7 @@ describe("apiRequest", () => {
 
     await apiRequest("/sports");
 
-    expect(fetchMock.mock.calls[0][1]).toEqual({ method: "GET" });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "GET", signal: expect.any(AbortSignal) });
   });
 
   it("supports PUT method", async () => {
@@ -262,13 +262,13 @@ describe("apiRequest", () => {
 
     await apiRequest("/bookmakers/selected/clear", {}, "PUT");
 
-    expect(fetchMock.mock.calls[0][1]).toEqual({ method: "PUT" });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "PUT", signal: expect.any(AbortSignal) });
   });
 
   it("throws on non-OK response", async () => {
     globalThis.fetch = mockFetchJson({ error: "not found" }, 404);
 
-    await expect(apiRequest("/events/999999")).rejects.toThrow("API error 404");
+    await expect(apiRequest("/events/999999")).rejects.toThrow("Odds API returned HTTP 404");
   });
 
 });
@@ -431,7 +431,7 @@ describe("Tool Handlers", () => {
 
     const calledUrl = new URL(fetchMock.mock.calls[0][0]);
     expect(calledUrl.pathname).toBe("/v3/bookmakers/selected/select");
-    expect(fetchMock.mock.calls[0][1]).toEqual({ method: "PUT" });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "PUT", signal: expect.any(AbortSignal) });
     expect(calledUrl.searchParams.get("bookmakers")).toBe("Bet365,SingBet");
   });
 
@@ -443,7 +443,7 @@ describe("Tool Handlers", () => {
 
     const calledUrl = new URL(fetchMock.mock.calls[0][0]);
     expect(calledUrl.pathname).toBe("/v3/bookmakers/selected/clear");
-    expect(fetchMock.mock.calls[0][1]).toEqual({ method: "PUT" });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "PUT", signal: expect.any(AbortSignal) });
   });
 
   it("get_odds_movements passes market and optional marketLine", async () => {
@@ -486,7 +486,7 @@ describe("Tool Handlers", () => {
     await toolMap.get("get_dropping_odds")!.handler({
       sport: "football",
       league: "england-premier-league",
-      market: "ML",
+      markets: "ML",
       timeWindow: "12h",
       minDrop: 5,
       limit: 100,
@@ -498,7 +498,7 @@ describe("Tool Handlers", () => {
     expect(calledUrl.pathname).toBe("/v3/dropping-odds");
     expect(calledUrl.searchParams.get("sport")).toBe("football");
     expect(calledUrl.searchParams.get("league")).toBe("england-premier-league");
-    expect(calledUrl.searchParams.get("market")).toBe("ML");
+    expect(calledUrl.searchParams.get("markets")).toBe("ML");
     expect(calledUrl.searchParams.get("timeWindow")).toBe("12h");
     expect(calledUrl.searchParams.get("minDrop")).toBe("5");
     expect(calledUrl.searchParams.get("limit")).toBe("100");
@@ -566,7 +566,7 @@ describe("Tool Handlers", () => {
     globalThis.fetch = mockFetchJson({ error: "bad request" }, 400);
 
     await expect(toolMap.get("get_sports")!.handler({})).rejects.toThrow(
-      "API error 400",
+      "Odds API returned HTTP 400",
     );
   });
 });
