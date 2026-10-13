@@ -8,7 +8,7 @@ Use Render's Blueprint creation screen: https://dashboard.render.com/select-repo
 
 Select `Stugu9601/odds-api-mcp-server`, then branch `render-remote-mcp`. The blueprint is `render.yaml`. Check the branch before applying it. If Render does not offer a branch picker, use the manual Web Service setup below instead.
 
-Enter your Odds-API.io key as `ODDS_API_KEY` in Render only. The blueprint generates three separate private values: `OWNER_PASSWORD`, `OAUTH_SIGNING_SECRET` and `CHATGPT_CLIENT_SECRET`. Never put these values in GitHub, chat messages or screenshots.
+Enter your The Odds API (the-odds-api.com) key as `ODDS_API_KEY` in Render only. The blueprint generates three separate private values: `OWNER_PASSWORD`, `OAUTH_SIGNING_SECRET` and `CHATGPT_CLIENT_SECRET`. Never put these values in GitHub, chat messages or screenshots.
 
 Manual alternative: create a Node Web Service from the same repository and branch. Build: `npm ci && npm run build`. Start: `npm run start:http`. Health check: `/health`. Choose Free for testing. Add `NODE_VERSION=22`, your `ODDS_API_KEY`, and three different randomly generated passwords of at least 32 characters for the three secret variables above. Disable automatic deployment while reviewing this branch.
 
@@ -34,12 +34,14 @@ The OAuth login page asks for `OWNER_PASSWORD` from Render. This is a separate p
 
 The server advertises issuer identification and allows the stable callback `https://chatgpt.com/connector_platform_oauth_redirect`. If ChatGPT displays a different callback, copy its exact URL into Render's `CHATGPT_REDIRECT_URIS` and redeploy. Only exact ChatGPT callback URLs are accepted; comma-separated entries are supported. Never add wildcard callbacks.
 
-After linking, enable the app in the conversation and ask: “List available sports and bookmakers, then fetch upcoming football events.” Test actual odds retrieval before relying on the connection. Some endpoints require a paid Odds-API.io plan; bookmaker and South African market coverage depend on the provider subscription.
+After linking, enable the app in the conversation and ask: “List available sports, then fetch upcoming events for one returned competition key.” Test actual odds retrieval before relying on the connection. Bookmaker and South African market coverage depend on The Odds API. The provider supports uk, eu, us, us2 and au regions; there is no za region. Do not assume international bookmaker odds match South African prices.
 
 ## Operation and limits
 
 - Local stdio remains available with `npm start`. HTTP starts separately with `npm run start:http`.
-- Remote tools cannot select or clear bookmakers on your provider account. Configure those settings directly with Odds-API.io if needed. The remote tools retrieve data and can grade hypothetical selections; they do not place bets.
+- HTTP now uses The Odds API v4 and exposes five tools: get_sports, get_events, get_odds, get_event_odds and get_scores. The original local stdio entry point still targets Odds-API.io.
+- After deploying the provider change, refresh the app tool definitions in ChatGPT. If no refresh option is offered, recreate the custom connection using the same URL and OAuth credentials. The schemas changed: use competition keys such as soccer_epl; event IDs are strings.
+- Sports and event discovery do not consume provider credits. Odds and scores calls consume credits; results include remaining/used/last-request quota headers. Start with one region and h2h to minimise test usage. Tools do not place bets.
 - Access tokens last one hour; refresh authorisation lasts at most seven days. Sign in again when it expires. Stable client and signing secrets let tokens survive service restarts. Login forms expire after 15 minutes. Login requests and short-lived codes in progress are lost on restart; restart that connection flow.
 - To revoke all sessions, rotate `OAUTH_SIGNING_SECRET` and redeploy. Changing only `OWNER_PASSWORD` does not revoke issued tokens. Refresh tokens are signed and reusable until expiry; this personal server has no per-token revocation store. Keep the client secret private.
 - Free Render services can sleep when idle. Cold starts may interrupt initial linking; open `/health` first and retry. An always-on plan may be needed for dependable daily use. Rate limits are per instance, with additional limits imposed by your Odds API subscription.
@@ -51,3 +53,5 @@ Official references:
 - https://developers.openai.com/api/docs/guides/custom-mcp-server
 - https://render.com/docs/blueprint-spec
 - https://render.com/docs/free
+
+Provider documentation: https://the-odds-api.com/liveapi/guides/v4/

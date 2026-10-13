@@ -52,7 +52,7 @@ export class OwnerOAuthProvider implements OAuthServerProvider {
     const nonce = random();
     this.pending.set(nonce, { clientId: client.client_id, params, expires: Date.now() + 900000 });
     // The form contains only a random, one-use nonce; API and client secrets stay server-side.
-    res.type("html").send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect your odds server</title><body><main><h1>Connect your odds server</h1><p>Allow ChatGPT to read sports odds using your Odds-API.io account.</p><form method="post" action="/login"><input type="hidden" name="nonce" value="${nonce}"><label>Owner password <input type="password" name="password" autocomplete="current-password" required maxlength="256"></label><p><button type="submit">Connect ChatGPT</button></p></form></main></body></html>`);
+    res.type("html").send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect your odds server</title><body><main><h1>Connect your odds server</h1><p>Allow ChatGPT to read sports odds using your The Odds API account.</p><form method="post" action="/login"><input type="hidden" name="nonce" value="${nonce}"><label>Owner password <input type="password" name="password" autocomplete="current-password" required maxlength="256"></label><p><button type="submit">Connect ChatGPT</button></p></form></main></body></html>`);
   }
 
   login(nonce: string, password: string): URL | undefined {

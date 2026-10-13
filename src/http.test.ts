@@ -104,7 +104,7 @@ describe("Remote MCP and OAuth", () => {
       expect(response.status).toBe(200);
       return response.json();
     }
-    expect((await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "test", version: "1" } })).result.serverInfo.name).toBe("odds-api-mcp");
+    expect((await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "test", version: "1" } })).result.serverInfo.name).toBe("personal-sports-odds");
     const names = (await rpc("tools/list")).result.tools.map((t: { name: string }) => t.name);
     expect(names).toContain("get_odds");
     expect(names).not.toContain("select_bookmakers");

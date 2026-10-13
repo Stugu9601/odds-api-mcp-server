@@ -4,7 +4,7 @@ import { rateLimit } from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createOAuthMetadata, mcpAuthRouter, getOAuthProtectedResourceMetadataUrl } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
-import { createServer } from "./index.js";
+import { createTheOddsApiServer } from "./theOddsApi.js";
 import { OwnerOAuthProvider, IncorrectOwnerPasswordError } from "./auth.js";
 
 export function createHttpApp(env: NodeJS.ProcessEnv = process.env) {
@@ -63,7 +63,7 @@ export function createHttpApp(env: NodeJS.ProcessEnv = process.env) {
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource), expectedResource: resource });
   app.use("/mcp", auth, rateLimit({ windowMs: 60000, limit: 60, standardHeaders: "draft-8", legacyHeaders: false }));
   app.post("/mcp", express.json({ limit: "128kb" }), async (req, res) => {
-    const server = createServer(true);
+    const server = createTheOddsApiServer(env.ODDS_API_KEY!);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { void transport.close(); void server.close(); });
     try {
